@@ -1,5 +1,12 @@
 # OpenClaw Local Control Center
 
+這份 repo 現在已包含可直接執行的程式檔案：
+
+- `app.py`：後端 HTTP 服務
+- `static/index.html`、`static/app.js`、`static/styles.css`：前端頁面
+- `tests/test_server.py`：測試
+- `run_local.sh`：macOS / Linux 快速啟動腳本
+
 這個專案提供一個可以在 **macOS 本機** 執行的前後端介面，讓你可以：
 
 - 在同一個頁面調整 OpenClaw 的 endpoint、profile、併發、timeout、retry、headless 與額外參數。
@@ -19,6 +26,8 @@
 ### 1. 啟動
 
 ```bash
+./run_local.sh
+# 或
 python3 app.py
 ```
 
@@ -104,3 +113,8 @@ lobster dispatch --queue <queue> --target <target> --profile <profile> --params 
 ```bash
 python3 -m unittest discover -s tests
 ```
+
+
+## Git / PR 補充
+
+目前這個工作目錄若沒有設定 `git remote`，我可以完成本地 commit，但**不能直接 push 到 GitHub 或建立真正的遠端 PR**。若你要我下一步幫你推到 GitHub，請先把 remote 設好，或提供可推送的 repo。
