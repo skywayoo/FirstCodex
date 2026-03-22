@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw Local Control Center</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">macOS 本機控制台</p>
+          <h1>OpenClaw + Lobster 任務派發中心</h1>
+          <p>
+            在同一個介面內調整 OpenClaw 參數、保存設定、預覽 CLI，並透過 Lobster 派發任務到
+            Telegram 或 Discord。
+          </p>
+        </div>
+        <div class="status-card">
+          <span class="dot"></span>
+          <strong id="config-status">設定載入中…</strong>
+          <p>預設會將設定保存在本機 `data/config.json`。</p>
+        </div>
+      </header>
+
+      <section class="panel-grid">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>OpenClaw 參數</h2>
+            <button id="save-openclaw">套用 OpenClaw 設定</button>
+          </div>
+          <div class="form-grid">
+            <label>Endpoint<input id="endpoint" /></label>
+            <label>Profile<input id="profile" /></label>
+            <label>Concurrency<input id="concurrency" type="number" min="1" /></label>
+            <label>Timeout (秒)<input id="timeoutSeconds" type="number" min="1" /></label>
+            <label>Retry Count<input id="retryCount" type="number" min="0" /></label>
+            <label>Environment<input id="environment" /></label>
+            <label class="checkbox"><input id="headless" type="checkbox" />Headless</label>
+            <label class="full-width">Extra Args<input id="extraArgs" placeholder="--foo bar" /></label>
+          </div>
+          <pre id="openclaw-preview" class="terminal"></pre>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Lobster 與通知設定</h2>
+            <button id="save-config">儲存全部設定</button>
+          </div>
+          <div class="form-grid">
+            <label>Lobster Command<input id="lobster-command" /></label>
+            <label>Workspace<input id="lobster-workspace" /></label>
+            <label>Default Queue<input id="lobster-queue" /></label>
+            <label class="checkbox"><input id="lobster-dryrun" type="checkbox" />Dry Run</label>
+            <label>Telegram Bot Token<input id="telegram-token" /></label>
+            <label>Telegram Chat ID<input id="telegram-chat" /></label>
+            <label class="full-width">Discord Webhook URL<input id="discord-webhook" /></label>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>任務派發</h2>
+          <button id="dispatch-task">派發任務</button>
+        </div>
+        <div class="form-grid">
+          <label>Task Name<input id="task-name" placeholder="crawl-news" /></label>
+          <label>Queue<input id="task-queue" placeholder="general" /></label>
+          <label>Target<input id="task-target" placeholder="campaign-a" /></label>
+          <label>
+            Channel
+            <select id="task-channel">
+              <option value="telegram">Telegram</option>
+              <option value="discord">Discord</option>
+              <option value="none">None</option>
+            </select>
+          </label>
+          <label class="full-width">
+            Parameters (JSON)
+            <textarea id="task-parameters" rows="6">{
+  "prompt": "collect leads",
+  "priority": "normal"
+}</textarea>
+          </label>
+        </div>
+        <div id="dispatch-result" class="callout"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>派發紀錄</h2>
+          <button id="refresh-history">重新整理</button>
+        </div>
+        <div id="history" class="history"></div>
+      </section>
+    </main>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
