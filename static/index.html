@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw Agent Console</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">macOS 本機 AI Agent 控制台</p>
+          <h1>OpenClaw Agent Console</h1>
+          <p>
+            在同一個介面內設定 OpenClaw AI agent 的模型、prompt、mission、`memory.md` 與其他 markdown 設定檔，
+            再透過 Lobster 進行任務派發與通知。
+          </p>
+        </div>
+        <div class="status-card">
+          <span class="dot"></span>
+          <strong id="config-status">設定載入中…</strong>
+          <p>OpenClaw 是 AI agent；Lobster 在這裡只負責任務派發。</p>
+        </div>
+      </header>
+
+      <section class="panel-grid">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>OpenClaw Agent 設定</h2>
+            <button id="save-openclaw">套用 Agent 設定</button>
+          </div>
+          <div class="form-grid">
+            <label>Endpoint<input id="endpoint" /></label>
+            <label>Agent Name<input id="agentName" /></label>
+            <label>Model<input id="model" /></label>
+            <label>Working Directory<input id="workingDirectory" /></label>
+            <label>Max Steps<input id="maxSteps" type="number" min="1" /></label>
+            <label>Memory Window<input id="memoryWindow" type="number" min="1" /></label>
+            <label class="checkbox"><input id="headless" type="checkbox" />Headless</label>
+            <label class="checkbox"><input id="allowShell" type="checkbox" />Allow Shell</label>
+            <label class="checkbox"><input id="allowBrowser" type="checkbox" />Allow Browser</label>
+            <label class="full-width">System Prompt<textarea id="systemPrompt" rows="4"></textarea></label>
+            <label class="full-width">Default Mission<textarea id="mission" rows="4"></textarea></label>
+            <label class="full-width">Extra Args<input id="extraArgs" placeholder="--temperature 0.2" /></label>
+          </div>
+          <pre id="openclaw-preview" class="terminal"></pre>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>OpenClaw Markdown 設定</h2>
+            <button id="save-config">儲存全部設定</button>
+          </div>
+          <div class="form-grid">
+            <label class="full-width">memory.md<textarea id="memoryMd" rows="8"></textarea></label>
+            <label class="full-width">task.md<textarea id="taskMd" rows="8"></textarea></label>
+            <label class="full-width">tools.md<textarea id="toolsMd" rows="8"></textarea></label>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel-grid">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Lobster Dispatcher / 通知</h2>
+          </div>
+          <div class="form-grid">
+            <label>Lobster Command<input id="lobster-command" /></label>
+            <label>Workspace<input id="lobster-workspace" /></label>
+            <label>Default Queue<input id="lobster-queue" /></label>
+            <label class="checkbox"><input id="lobster-dryrun" type="checkbox" />Dry Run</label>
+            <label>Telegram Bot Token<input id="telegram-token" /></label>
+            <label>Telegram Chat ID<input id="telegram-chat" /></label>
+            <label class="full-width">Discord Webhook URL<input id="discord-webhook" /></label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>用 Lobster 派發 OpenClaw Agent 任務</h2>
+            <button id="dispatch-task">派發任務</button>
+          </div>
+          <div class="form-grid">
+            <label>Task Name<input id="task-name" placeholder="research-competitors" /></label>
+            <label>Queue<input id="task-queue" placeholder="general" /></label>
+            <label>Target<input id="task-target" placeholder="campaign-a" /></label>
+            <label>
+              Channel
+              <select id="task-channel">
+                <option value="telegram">Telegram</option>
+                <option value="discord">Discord</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <label class="full-width">Mission Override<textarea id="task-mission" rows="4">Collect findings and prepare a markdown summary.</textarea></label>
+            <label class="full-width">
+              Parameters (JSON)
+              <textarea id="task-parameters" rows="6">{
+  "topic": "AI agent competitors",
+  "priority": "normal"
+}</textarea>
+            </label>
+          </div>
+          <div id="dispatch-result" class="callout"></div>
+        </section>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>派發紀錄</h2>
+          <button id="refresh-history">重新整理</button>
+        </div>
+        <div id="history" class="history"></div>
+      </section>
+    </main>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
