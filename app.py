@@ -16,6 +16,7 @@ STATIC_DIR = BASE_DIR / "static"
 DATA_DIR = BASE_DIR / "data"
 CONFIG_PATH = DATA_DIR / "config.json"
 TASKS_PATH = DATA_DIR / "tasks.json"
+DOCS_DIR = DATA_DIR / "openclaw_docs"
 
 DEFAULT_CONFIG = {
     "openclaw": {
@@ -31,6 +32,11 @@ DEFAULT_CONFIG = {
         "allowBrowser": True,
         "workingDirectory": "~/openclaw-workspace",
         "extraArgs": "",
+        "docs": {
+            "memoryMd": "# memory.md\n\n- Product: OpenClaw agent console\n- Goals: keep task context and prior discoveries\n- Constraints: run locally on macOS\n",
+            "taskMd": "# task.md\n\n## Objective\n- Investigate the assigned target\n\n## Deliverable\n- Produce a markdown summary with findings\n",
+            "toolsMd": "# tools.md\n\n- shell: enabled\n- browser: enabled\n- notifications: telegram / discord\n",
+        },
     },
     "lobster": {
         "command": "lobster",
@@ -50,10 +56,26 @@ DEFAULT_CONFIG = {
 
 def ensure_data_files() -> None:
     DATA_DIR.mkdir(exist_ok=True)
+    DOCS_DIR.mkdir(exist_ok=True)
     if not CONFIG_PATH.exists():
         CONFIG_PATH.write_text(json.dumps(DEFAULT_CONFIG, indent=2), encoding="utf-8")
     if not TASKS_PATH.exists():
         TASKS_PATH.write_text("[]", encoding="utf-8")
+    config = merge_config(read_json(CONFIG_PATH, DEFAULT_CONFIG))
+    write_json(CONFIG_PATH, config)
+    sync_markdown_files(config)
+
+
+def merge_config(config: dict[str, Any]) -> dict[str, Any]:
+    merged = json.loads(json.dumps(DEFAULT_CONFIG))
+    for section, values in config.items():
+        if isinstance(values, dict) and isinstance(merged.get(section), dict):
+            merged[section].update(values)
+            if section == "openclaw" and isinstance(values.get("docs"), dict):
+                merged[section]["docs"].update(values["docs"])
+        else:
+            merged[section] = values
+    return merged
 
 
 def read_json(path: Path, fallback: Any) -> Any:
@@ -64,6 +86,19 @@ def read_json(path: Path, fallback: Any) -> Any:
 
 def write_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def sync_markdown_files(config: dict[str, Any]) -> dict[str, Path]:
+    DOCS_DIR.mkdir(exist_ok=True)
+    docs = config["openclaw"].get("docs", {})
+    paths = {
+        "memoryMd": DOCS_DIR / "memory.md",
+        "taskMd": DOCS_DIR / "task.md",
+        "toolsMd": DOCS_DIR / "tools.md",
+    }
+    for key, path in paths.items():
+        path.write_text(docs.get(key, ""), encoding="utf-8")
+    return paths
 
 
 @dataclass
@@ -82,6 +117,7 @@ class OpenClawService:
 
     def preview_command(self) -> list[str]:
         agent = self.config["openclaw"]
+        doc_paths = sync_markdown_files(self.config)
         command = [
             "openclaw",
             "agent",
@@ -102,6 +138,12 @@ class OpenClawService:
             agent["mission"],
             "--system-prompt",
             agent["systemPrompt"],
+            "--memory-file",
+            str(doc_paths["memoryMd"]),
+            "--task-file",
+            str(doc_paths["taskMd"]),
+            "--tools-file",
+            str(doc_paths["toolsMd"]),
         ]
         if agent.get("headless"):
             command.append("--headless")
@@ -230,27 +272,30 @@ class OpenClawHandler(SimpleHTTPRequestHandler):
     def do_POST(self) -> None:
         ensure_data_files()
         if self.path == "/api/config":
-            payload = self._read_json()
+            payload = merge_config(self._read_json())
             write_json(CONFIG_PATH, payload)
+            sync_markdown_files(payload)
             self._send_json({"ok": True, "config": payload})
             return
         if self.path == "/api/openclaw/apply":
             payload = self._read_json()
-            config = read_json(CONFIG_PATH, DEFAULT_CONFIG)
+            config = merge_config(read_json(CONFIG_PATH, DEFAULT_CONFIG))
             config["openclaw"].update(payload)
+            if isinstance(payload.get("docs"), dict):
+                config["openclaw"]["docs"].update(payload["docs"])
             write_json(CONFIG_PATH, config)
             preview = OpenClawService(config).preview_command()
             self._send_json(
                 {
                     "ok": True,
-                    "message": "OpenClaw agent settings saved locally.",
+                    "message": "OpenClaw agent settings and markdown docs saved locally.",
                     "preview": " ".join(preview),
                 }
             )
             return
         if self.path == "/api/tasks/dispatch":
             payload = self._read_json()
-            config = read_json(CONFIG_PATH, DEFAULT_CONFIG)
+            config = merge_config(read_json(CONFIG_PATH, DEFAULT_CONFIG))
             task = {
                 "id": datetime.now(timezone.utc).strftime("task-%Y%m%d%H%M%S"),
                 "name": payload["name"],

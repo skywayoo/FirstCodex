@@ -9,6 +9,22 @@
 - `tests/test_server.py`：基本測試。
 - `run_local.sh`：macOS / Linux 快速啟動腳本。
 
+## 這次補上的重點：OpenClaw markdown 檔也能設定
+
+你提到 OpenClaw 常會搭配 `memory.md` 與其他 markdown 文件，這次我已經把它們納入 UI 與本機同步流程：
+
+- `memory.md`
+- `task.md`
+- `tools.md`
+
+這些內容現在可以直接在介面編輯，儲存後會同步寫到：
+
+- `data/openclaw_docs/memory.md`
+- `data/openclaw_docs/task.md`
+- `data/openclaw_docs/tools.md`
+
+同時 `openclaw agent run` 的預覽命令也會把這些 markdown 檔案帶進去。
+
 ## 這個介面可以做什麼
 
 ### 1. 本機控制 OpenClaw AI agent
@@ -26,8 +42,9 @@
 - headless
 - shell / browser 權限
 - extra args
-
-儲存後會同步更新本機設定，並預覽一條 `openclaw agent run ...` 命令。
+- `memory.md`
+- `task.md`
+- `tools.md`
 
 ### 2. 用 Lobster 派發 OpenClaw 任務
 

@@ -23,6 +23,11 @@ function getConfigPayload() {
       allowBrowser: qs('allowBrowser').checked,
       workingDirectory: qs('workingDirectory').value,
       extraArgs: qs('extraArgs').value,
+      docs: {
+        memoryMd: qs('memoryMd').value,
+        taskMd: qs('taskMd').value,
+        toolsMd: qs('toolsMd').value,
+      },
     },
     lobster: {
       command: qs('lobster-command').value,
@@ -54,6 +59,9 @@ function hydrateConfig(config) {
   qs('allowBrowser').checked = openclaw.allowBrowser;
   qs('workingDirectory').value = openclaw.workingDirectory;
   qs('extraArgs').value = openclaw.extraArgs;
+  qs('memoryMd').value = openclaw.docs.memoryMd;
+  qs('taskMd').value = openclaw.docs.taskMd;
+  qs('toolsMd').value = openclaw.docs.toolsMd;
   qs('lobster-command').value = lobster.command;
   qs('lobster-workspace').value = lobster.workspace;
   qs('lobster-queue').value = lobster.defaultQueue;
