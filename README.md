@@ -1,29 +1,52 @@
-# OpenClaw Local Control Center
+# OpenClaw Agent Console
 
-這份 repo 現在已包含可直接執行的程式檔案：
+這份 repo 提供的是一個 **本機控制 OpenClaw AI agent** 的前後端介面；**Lobster 只用來做任務派發，不是 OpenClaw 本身**。
 
-- `app.py`：後端 HTTP 服務
-- `static/index.html`、`static/app.js`、`static/styles.css`：前端頁面
-- `tests/test_server.py`：測試
-- `run_local.sh`：macOS / Linux 快速啟動腳本
+## Repo 內有哪些程式
 
-這個專案提供一個可以在 **macOS 本機** 執行的前後端介面，讓你可以：
+- `app.py`：後端 HTTP 服務與 JSON API。
+- `static/index.html`、`static/app.js`、`static/styles.css`：前端介面。
+- `tests/test_server.py`：基本測試。
+- `run_local.sh`：macOS / Linux 快速啟動腳本。
 
-- 在同一個頁面調整 OpenClaw 的 endpoint、profile、併發、timeout、retry、headless 與額外參數。
-- 將設定保存到本機 JSON 檔案，並立即預覽對應的 OpenClaw CLI 指令。
-- 透過 Lobster 進行任務派發，並保存派發歷史。
-- 在派發後嘗試發送 Telegram 或 Discord 通知。
+## 這個介面可以做什麼
 
-## 專案結構
+### 1. 本機控制 OpenClaw AI agent
 
-- `app.py`：純 Python 後端，提供靜態頁面與 JSON API。
-- `static/`：前端頁面、樣式與互動腳本。
-- `data/`：執行後自動產生的本機設定與派發紀錄。
-- `tests/`：基本單元測試。
+你可以在 UI 裡一次設定 OpenClaw agent 的：
+
+- endpoint
+- agent name
+- model
+- system prompt
+- default mission
+- max steps
+- memory window
+- working directory
+- headless
+- shell / browser 權限
+- extra args
+
+儲存後會同步更新本機設定，並預覽一條 `openclaw agent run ...` 命令。
+
+### 2. 用 Lobster 派發 OpenClaw 任務
+
+Lobster 在這個專案裡扮演的是 **dispatcher / queue runner**：
+
+- 指定 queue
+- 指定 target
+- 帶入要給 OpenClaw agent 的 mission
+- 帶入任務參數 JSON
+- 可選擇 Telegram / Discord 通知
+
+換句話說：
+
+- **OpenClaw = AI agent**
+- **Lobster = 派發任務給 agent 的工具**
 
 ## macOS 使用方式
 
-### 1. 啟動
+### 啟動
 
 ```bash
 ./run_local.sh
@@ -31,82 +54,48 @@
 python3 app.py
 ```
 
-啟動後開啟：<http://127.0.0.1:8000>
+然後開啟 <http://127.0.0.1:8000>
 
-### 2. 設定 OpenClaw
+## Lobster 安裝
 
-在畫面左側可以一次設定：
+這份 repo 預設不內嵌 Lobster binary，而是讓你在本機安裝後填入：
 
-- OpenClaw endpoint
-- profile
-- concurrency
-- timeoutSeconds
-- retryCount
-- environment
-- headless
-- extraArgs
+- `Lobster Command`
+- `Workspace`
+- `Default Queue`
 
-按下 **「套用 OpenClaw 設定」** 後，系統會更新本機設定並顯示 CLI 預覽。
-
-## Lobster 安裝與整合
-
-這個專案預設 **不直接內嵌 Lobster 二進位**，而是透過 README 指引安裝，原因是：
-
-- macOS 上你可能會依照自己的 Python / Homebrew / 內部發行方式安裝 Lobster。
-- 你可以直接在介面裡指定 `Lobster Command` 與 `Workspace`，不綁定固定路徑。
-- 如果你之後要改成 bundle 方式，也可以把 `lobster` 可執行檔放進 repo，再把 `command` 改成相對路徑。
-
-### 建議安裝方式
-
-依你實際使用的 Lobster 專案而定，常見做法包括：
+常見安裝方式：
 
 ```bash
 brew install lobster
 # 或
 pip install lobster
-# 或改成你內部的安裝方式
 ```
 
-安裝完成後，請在畫面中填入：
-
-- `Lobster Command`：例如 `lobster`
-- `Workspace`：例如 `~/lobster-workspace`
-- `Default Queue`：例如 `general`
-
-### Dry Run 模式
-
-預設啟用 `Dry Run`，用來安全確認派發命令是否正確。關閉後，後端才會真的執行：
-
-```bash
-lobster dispatch --queue <queue> --target <target> --profile <profile> --params '<json>'
-```
+預設 `Dry Run` 會開啟，方便先確認派發命令。
 
 ## Telegram / Discord 通知
 
 ### Telegram
 
-請在介面內填寫：
+請在 UI 內設定：
 
 - `Telegram Bot Token`
 - `Telegram Chat ID`
 
-派發後會呼叫 Telegram Bot API `sendMessage`。
-
 ### Discord
 
-請在介面內填寫：
+請在 UI 內設定：
 
 - `Discord Webhook URL`
 
-派發後會以 webhook 發送訊息。
+## API
 
-## API 摘要
-
-- `GET /api/config`：讀取目前設定
-- `POST /api/config`：儲存全部設定
-- `POST /api/openclaw/apply`：只更新 OpenClaw 區塊並回傳 CLI 預覽
-- `GET /api/tasks`：讀取派發歷史
-- `POST /api/tasks/dispatch`：派發 Lobster 任務並通知
+- `GET /api/config`
+- `POST /api/config`
+- `POST /api/openclaw/apply`
+- `GET /api/tasks`
+- `POST /api/tasks/dispatch`
 
 ## 測試
 
@@ -114,7 +103,6 @@ lobster dispatch --queue <queue> --target <target> --profile <profile> --params 
 python3 -m unittest discover -s tests
 ```
 
-
 ## Git / PR 補充
 
-目前這個工作目錄若沒有設定 `git remote`，我可以完成本地 commit，但**不能直接 push 到 GitHub 或建立真正的遠端 PR**。若你要我下一步幫你推到 GitHub，請先把 remote 設好，或提供可推送的 repo。
+如果目前工作目錄沒有設定 `git remote`，我可以完成本地 commit，但不能直接 push 到 GitHub 或建立真正的遠端 PR。

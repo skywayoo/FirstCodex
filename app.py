@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -20,12 +20,16 @@ TASKS_PATH = DATA_DIR / "tasks.json"
 DEFAULT_CONFIG = {
     "openclaw": {
         "endpoint": "http://127.0.0.1:8080",
-        "profile": "default",
-        "concurrency": 2,
+        "agentName": "research-agent",
+        "model": "gpt-4.1",
+        "systemPrompt": "You are OpenClaw, a local automation agent.",
+        "mission": "Collect findings, update files, and report results.",
+        "maxSteps": 12,
+        "memoryWindow": 8,
         "headless": False,
-        "timeoutSeconds": 120,
-        "retryCount": 1,
-        "environment": "local-macos",
+        "allowShell": True,
+        "allowBrowser": True,
+        "workingDirectory": "~/openclaw-workspace",
         "extraArgs": "",
     },
     "lobster": {
@@ -72,12 +76,51 @@ class DispatchResult:
     task: dict[str, Any]
 
 
+class OpenClawService:
+    def __init__(self, config: dict[str, Any]):
+        self.config = config
+
+    def preview_command(self) -> list[str]:
+        agent = self.config["openclaw"]
+        command = [
+            "openclaw",
+            "agent",
+            "run",
+            "--endpoint",
+            agent["endpoint"],
+            "--name",
+            agent["agentName"],
+            "--model",
+            agent["model"],
+            "--max-steps",
+            str(agent["maxSteps"]),
+            "--memory-window",
+            str(agent["memoryWindow"]),
+            "--working-directory",
+            agent["workingDirectory"],
+            "--mission",
+            agent["mission"],
+            "--system-prompt",
+            agent["systemPrompt"],
+        ]
+        if agent.get("headless"):
+            command.append("--headless")
+        if agent.get("allowShell"):
+            command.append("--allow-shell")
+        if agent.get("allowBrowser"):
+            command.append("--allow-browser")
+        if agent.get("extraArgs"):
+            command.extend(agent["extraArgs"].split())
+        return command
+
+
 class LobsterService:
     def __init__(self, config: dict[str, Any]):
         self.config = config
 
     def dispatch(self, task: dict[str, Any]) -> DispatchResult:
         lobster_config = self.config["lobster"]
+        agent = self.config["openclaw"]
         command = [
             lobster_config["command"],
             "dispatch",
@@ -85,20 +128,24 @@ class LobsterService:
             task["queue"],
             "--target",
             task["target"],
-            "--profile",
-            self.config["openclaw"]["profile"],
-            "--params",
+            "--agent",
+            agent["agentName"],
+            "--model",
+            agent["model"],
+            "--mission",
+            task["mission"],
+            "--payload",
             json.dumps(task["parameters"], ensure_ascii=False),
         ]
 
-        if task.get("channel"):
+        if task.get("channel") and task["channel"] != "none":
             command.extend(["--channel", task["channel"]])
 
         if lobster_config.get("dryRun", True):
             return DispatchResult(
                 ok=True,
                 command=command,
-                stdout="Dry-run mode enabled; command was not executed.",
+                stdout="Dry-run mode enabled; Lobster dispatch command was not executed.",
                 stderr="",
                 code=0,
                 task=task,
@@ -192,8 +239,14 @@ class OpenClawHandler(SimpleHTTPRequestHandler):
             config = read_json(CONFIG_PATH, DEFAULT_CONFIG)
             config["openclaw"].update(payload)
             write_json(CONFIG_PATH, config)
-            cmd_preview = self._build_openclaw_preview(config)
-            self._send_json({"ok": True, "message": "OpenClaw settings saved locally.", "preview": cmd_preview})
+            preview = OpenClawService(config).preview_command()
+            self._send_json(
+                {
+                    "ok": True,
+                    "message": "OpenClaw agent settings saved locally.",
+                    "preview": " ".join(preview),
+                }
+            )
             return
         if self.path == "/api/tasks/dispatch":
             payload = self._read_json()
@@ -204,6 +257,8 @@ class OpenClawHandler(SimpleHTTPRequestHandler):
                 "queue": payload.get("queue") or config["lobster"]["defaultQueue"],
                 "target": payload["target"],
                 "channel": payload.get("channel", "telegram"),
+                "mission": payload.get("mission") or config["openclaw"]["mission"],
+                "agentName": config["openclaw"]["agentName"],
                 "parameters": payload.get("parameters", {}),
                 "createdAt": datetime.now(timezone.utc).isoformat(),
             }
@@ -213,20 +268,15 @@ class OpenClawHandler(SimpleHTTPRequestHandler):
             write_json(TASKS_PATH, history)
             notifications = NotificationService(config).send(
                 "Lobster task dispatched" if dispatch_result.ok else "Lobster task failed",
-                f"Task: {task['name']}\nQueue: {task['queue']}\nTarget: {task['target']}\nStatus: {'ok' if dispatch_result.ok else 'failed'}",
+                f"Task: {task['name']}\nQueue: {task['queue']}\nOpenClaw agent: {config['openclaw']['agentName']}\nStatus: {'ok' if dispatch_result.ok else 'failed'}",
             )
             status = HTTPStatus.OK if dispatch_result.ok else HTTPStatus.BAD_GATEWAY
-            self._send_json({"ok": dispatch_result.ok, "result": asdict(dispatch_result), "notifications": notifications}, status=status)
+            self._send_json(
+                {"ok": dispatch_result.ok, "result": asdict(dispatch_result), "notifications": notifications},
+                status=status,
+            )
             return
         self.send_error(HTTPStatus.NOT_FOUND, "Unknown endpoint")
-
-    def _build_openclaw_preview(self, config: dict[str, Any]) -> str:
-        openclaw = config["openclaw"]
-        return (
-            f"openclaw --endpoint {openclaw['endpoint']} --profile {openclaw['profile']} "
-            f"--concurrency {openclaw['concurrency']} --timeout {openclaw['timeoutSeconds']} "
-            f"--retries {openclaw['retryCount']} {'--headless' if openclaw['headless'] else ''} {openclaw['extraArgs']}"
-        ).strip()
 
     def _read_json(self) -> dict[str, Any]:
         content_length = int(self.headers.get("Content-Length", "0"))

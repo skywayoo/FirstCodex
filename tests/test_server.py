@@ -21,17 +21,25 @@ class ServerTest(unittest.TestCase):
         self.assertTrue(app.CONFIG_PATH.exists())
         self.assertEqual(json.loads(app.TASKS_PATH.read_text()), [])
 
-    def test_lobster_dry_run_dispatch(self):
+    def test_openclaw_preview_uses_agent_fields(self):
+        config = app.read_json(app.CONFIG_PATH, app.DEFAULT_CONFIG)
+        preview = app.OpenClawService(config).preview_command()
+        self.assertIn('agent', preview)
+        self.assertIn('--model', preview)
+        self.assertIn(config['openclaw']['agentName'], preview)
+
+    def test_lobster_dry_run_dispatch_for_openclaw_agent(self):
         config = app.read_json(app.CONFIG_PATH, app.DEFAULT_CONFIG)
         service = app.LobsterService(config)
         result = service.dispatch({
             'queue': 'general',
             'target': 'demo',
             'channel': 'telegram',
-            'parameters': {'k': 'v'},
+            'mission': 'Summarize a competitor website.',
+            'parameters': {'topic': 'ai agents'},
         })
         self.assertTrue(result.ok)
-        self.assertIn('dispatch', result.command)
+        self.assertIn('--agent', result.command)
         self.assertIn('Dry-run mode', result.stdout)
 
 

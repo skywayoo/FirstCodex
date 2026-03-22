@@ -12,12 +12,16 @@ function getConfigPayload() {
   return {
     openclaw: {
       endpoint: qs('endpoint').value,
-      profile: qs('profile').value,
-      concurrency: Number(qs('concurrency').value),
+      agentName: qs('agentName').value,
+      model: qs('model').value,
+      systemPrompt: qs('systemPrompt').value,
+      mission: qs('mission').value,
+      maxSteps: Number(qs('maxSteps').value),
+      memoryWindow: Number(qs('memoryWindow').value),
       headless: qs('headless').checked,
-      timeoutSeconds: Number(qs('timeoutSeconds').value),
-      retryCount: Number(qs('retryCount').value),
-      environment: qs('environment').value,
+      allowShell: qs('allowShell').checked,
+      allowBrowser: qs('allowBrowser').checked,
+      workingDirectory: qs('workingDirectory').value,
       extraArgs: qs('extraArgs').value,
     },
     lobster: {
@@ -39,12 +43,16 @@ function getConfigPayload() {
 function hydrateConfig(config) {
   const { openclaw, lobster, notifications } = config;
   qs('endpoint').value = openclaw.endpoint;
-  qs('profile').value = openclaw.profile;
-  qs('concurrency').value = openclaw.concurrency;
+  qs('agentName').value = openclaw.agentName;
+  qs('model').value = openclaw.model;
+  qs('systemPrompt').value = openclaw.systemPrompt;
+  qs('mission').value = openclaw.mission;
+  qs('maxSteps').value = openclaw.maxSteps;
+  qs('memoryWindow').value = openclaw.memoryWindow;
   qs('headless').checked = openclaw.headless;
-  qs('timeoutSeconds').value = openclaw.timeoutSeconds;
-  qs('retryCount').value = openclaw.retryCount;
-  qs('environment').value = openclaw.environment;
+  qs('allowShell').checked = openclaw.allowShell;
+  qs('allowBrowser').checked = openclaw.allowBrowser;
+  qs('workingDirectory').value = openclaw.workingDirectory;
   qs('extraArgs').value = openclaw.extraArgs;
   qs('lobster-command').value = lobster.command;
   qs('lobster-workspace').value = lobster.workspace;
@@ -93,8 +101,10 @@ async function loadHistory() {
     el.className = 'history-item';
     el.innerHTML = `
       <h3>${item.name}</h3>
-      <p>Queue: ${item.queue} · Target: ${item.target}</p>
-      <p>Status: ${item.ok ? 'ok' : 'failed'} · Command: ${item.command.join(' ')}</p>
+      <p>OpenClaw agent: ${item.task.agentName || 'configured agent'} · Queue: ${item.queue}</p>
+      <p>Target: ${item.target} · Status: ${item.ok ? 'ok' : 'failed'}</p>
+      <p>Mission: ${item.mission}</p>
+      <p>Command: ${item.command.join(' ')}</p>
       <p>${item.stdout || item.stderr || ''}</p>
     `;
     root.appendChild(el);
@@ -109,6 +119,7 @@ async function dispatchTask() {
       queue: qs('task-queue').value,
       target: qs('task-target').value,
       channel: qs('task-channel').value,
+      mission: qs('task-mission').value,
       parameters: JSON.parse(qs('task-parameters').value || '{}'),
     }),
   });

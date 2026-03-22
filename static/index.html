@@ -3,49 +3,53 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OpenClaw Local Control Center</title>
+    <title>OpenClaw Agent Console</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="layout">
       <header class="hero">
         <div>
-          <p class="eyebrow">macOS 本機控制台</p>
-          <h1>OpenClaw + Lobster 任務派發中心</h1>
+          <p class="eyebrow">macOS 本機 AI Agent 控制台</p>
+          <h1>OpenClaw Agent Console</h1>
           <p>
-            在同一個介面內調整 OpenClaw 參數、保存設定、預覽 CLI，並透過 Lobster 派發任務到
-            Telegram 或 Discord。
+            在同一個介面內設定 OpenClaw AI agent 的模型、system prompt、mission、工具權限與工作目錄，
+            再透過 Lobster 進行任務派發與通知。
           </p>
         </div>
         <div class="status-card">
           <span class="dot"></span>
           <strong id="config-status">設定載入中…</strong>
-          <p>預設會將設定保存在本機 `data/config.json`。</p>
+          <p>OpenClaw 是 AI agent；Lobster 在這裡只負責任務派發。</p>
         </div>
       </header>
 
       <section class="panel-grid">
         <section class="panel">
           <div class="panel-header">
-            <h2>OpenClaw 參數</h2>
-            <button id="save-openclaw">套用 OpenClaw 設定</button>
+            <h2>OpenClaw Agent 設定</h2>
+            <button id="save-openclaw">套用 Agent 設定</button>
           </div>
           <div class="form-grid">
             <label>Endpoint<input id="endpoint" /></label>
-            <label>Profile<input id="profile" /></label>
-            <label>Concurrency<input id="concurrency" type="number" min="1" /></label>
-            <label>Timeout (秒)<input id="timeoutSeconds" type="number" min="1" /></label>
-            <label>Retry Count<input id="retryCount" type="number" min="0" /></label>
-            <label>Environment<input id="environment" /></label>
+            <label>Agent Name<input id="agentName" /></label>
+            <label>Model<input id="model" /></label>
+            <label>Working Directory<input id="workingDirectory" /></label>
+            <label>Max Steps<input id="maxSteps" type="number" min="1" /></label>
+            <label>Memory Window<input id="memoryWindow" type="number" min="1" /></label>
             <label class="checkbox"><input id="headless" type="checkbox" />Headless</label>
-            <label class="full-width">Extra Args<input id="extraArgs" placeholder="--foo bar" /></label>
+            <label class="checkbox"><input id="allowShell" type="checkbox" />Allow Shell</label>
+            <label class="checkbox"><input id="allowBrowser" type="checkbox" />Allow Browser</label>
+            <label class="full-width">System Prompt<textarea id="systemPrompt" rows="4"></textarea></label>
+            <label class="full-width">Default Mission<textarea id="mission" rows="4"></textarea></label>
+            <label class="full-width">Extra Args<input id="extraArgs" placeholder="--temperature 0.2" /></label>
           </div>
           <pre id="openclaw-preview" class="terminal"></pre>
         </section>
 
         <section class="panel">
           <div class="panel-header">
-            <h2>Lobster 與通知設定</h2>
+            <h2>Lobster Dispatcher / 通知</h2>
             <button id="save-config">儲存全部設定</button>
           </div>
           <div class="form-grid">
@@ -62,11 +66,11 @@
 
       <section class="panel">
         <div class="panel-header">
-          <h2>任務派發</h2>
+          <h2>用 Lobster 派發 OpenClaw Agent 任務</h2>
           <button id="dispatch-task">派發任務</button>
         </div>
         <div class="form-grid">
-          <label>Task Name<input id="task-name" placeholder="crawl-news" /></label>
+          <label>Task Name<input id="task-name" placeholder="research-competitors" /></label>
           <label>Queue<input id="task-queue" placeholder="general" /></label>
           <label>Target<input id="task-target" placeholder="campaign-a" /></label>
           <label>
@@ -77,10 +81,11 @@
               <option value="none">None</option>
             </select>
           </label>
+          <label class="full-width">Mission Override<textarea id="task-mission" rows="4">Collect findings and prepare a markdown summary.</textarea></label>
           <label class="full-width">
             Parameters (JSON)
             <textarea id="task-parameters" rows="6">{
-  "prompt": "collect leads",
+  "topic": "AI agent competitors",
   "priority": "normal"
 }</textarea>
           </label>
